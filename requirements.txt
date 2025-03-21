@@ -1,0 +1,5 @@
+SQLAlchemy==1.4.46
+colorlog==6.7.0
+tzlocal==5.2
+colorlog==6.7.0
+pyinstaller

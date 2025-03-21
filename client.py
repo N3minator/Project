@@ -14,11 +14,11 @@ class ChatClient:
         self.master = master
         self.master.title("Chat Client")
 
-        # Top panel: online label, export button, username label, and connection toggle button
+        # Top panel: online label, chat export button, nickname label and connection toggle button
         top_frame = tk.Frame(master)
         top_frame.pack(pady=5)
 
-        self.online_label = tk.Label(top_frame, text="Current online: 0", fg="blue", cursor="hand2")
+        self.online_label = tk.Label(top_frame, text="Online: 0", fg="blue", cursor="hand2")
         self.online_label.pack(side=tk.LEFT, padx=(0, 10))
         self.online_label.bind("<Button-1>", self.show_online_users)
 
@@ -34,7 +34,7 @@ class ChatClient:
         self.current_users = []
         self.history_loaded = False
 
-        # Chat area
+        # Chat text area
         self.text_area = scrolledtext.ScrolledText(master, state='disabled', wrap='word')
         self.text_area.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
         self.text_area.tag_config("system", foreground="blue", font=("Helvetica", 10, "italic"))
@@ -43,7 +43,7 @@ class ChatClient:
         self.text_area.tag_config("private_received", foreground="orange", font=("Helvetica", 10, "bold"))
         self.text_area.tag_config("my_message", foreground="green", font=("Helvetica", 10, "bold"))
 
-        # Message input field
+        # Message entry area
         entry_frame = tk.Frame(master)
         entry_frame.pack(pady=5, fill=tk.X)
 
@@ -54,15 +54,15 @@ class ChatClient:
         self.send_button = tk.Button(entry_frame, text="Send", command=self.send_message)
         self.send_button.pack(side=tk.RIGHT, padx=5)
 
-        # Prompt for username
+        # Request username
         self.username = simpledialog.askstring("Username", "Enter your name:", parent=self.master)
         if not self.username:
             self.master.destroy()
             return
-        self.user_label.config(text=f"Your nick: {self.username}")
+        self.user_label.config(text=f"Your Nick: {self.username}")
 
         self.running = True
-        # Flag to indicate that the connection is manually disabled
+        # Flag indicating that the connection is manually disconnected
         self.connection_blocked = False
 
         # Connect to the server
@@ -71,7 +71,7 @@ class ChatClient:
         self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
 
     def connect_to_server(self):
-        """Attempt to connect to the server if the connection is not manually blocked."""
+        """Attempt to connect to the server if not manually blocked."""
         if self.connection_blocked:
             return
 
@@ -92,16 +92,16 @@ class ChatClient:
             self.master.after(5000, self.connect_to_server)
             return
 
-        self.display_message("Connection to the server restored!", tag="system")
+        self.display_message("Server connection restored!", tag="system")
 
-        # Clear chat before reloading chat history
+        # Clear the chat before reloading chat history
         self.clear_chat()
 
         self.receive_thread = threading.Thread(target=self.receive_loop, daemon=True)
         self.receive_thread.start()
 
     def toggle_connection(self):
-        # Toggles the connection state: disconnects when pressed, reconnects when pressed again.
+        """Toggle the connection state: disconnect when pressed, reconnect on next press."""
         if not self.connection_blocked:
             self.connection_blocked = True
             try:
@@ -112,7 +112,7 @@ class ChatClient:
             self.toggle_button.config(text="Connect")
         else:
             self.connection_blocked = False
-            self.display_message("Attempting to reconnect...", tag="system")
+            self.display_message("Attempting to restore connection...", tag="system")
             self.toggle_button.config(text="Disconnect")
             self.connect_to_server()
 
@@ -135,8 +135,8 @@ class ChatClient:
     def receive_loop(self):
         """
         Main loop for receiving data from the server.
-        Collects history in a buffer until receiving the string HISTORY_END,
-        then displays it all at once for immediate presentation.
+        Collects chat history into a buffer until receiving the "HISTORY_END" line,
+        then displays it all at once for instant loading.
         """
         buffer = ""
         collecting_history = True
@@ -199,7 +199,10 @@ class ChatClient:
             self.master.after(5000, self.connect_to_server)
 
     def handle_online_users_message(self, message):
-        # Processes the online users message.
+        """
+        Processes the online users message.
+        Expected format: ONLINE_USERS|<number>|<nick1>|<nick2>|...
+        """
         parts = message.split("|")
         if len(parts) < 2:
             return
@@ -208,7 +211,7 @@ class ChatClient:
         except ValueError:
             count = 0
         users = parts[2:]
-        self.online_label.config(text=f"Current online: {count}")
+        self.online_label.config(text=f"Online: {count}")
         self.current_users = users
 
     def display_message(self, message, tag="client"):
@@ -258,12 +261,12 @@ class ChatClient:
             try:
                 self.sock.sendall(msg.encode('utf-8'))
             except Exception:
-                self.display_message("Error sending message. The server may be unavailable.", tag="system")
+                self.display_message("Error sending message. Server may be unavailable.", tag="system")
         self.entry_field.delete(0, tk.END)
 
     def show_online_users(self, event=None):
         top = tk.Toplevel(self.master)
-        top.title("Online Users List")
+        top.title("Online Users")
         listbox = tk.Listbox(top)
         listbox.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
         for user in self.current_users:
@@ -273,7 +276,7 @@ class ChatClient:
         self.running = False
         try:
             self.sock.close()
-        except Exception:
+        except:
             pass
         self.master.destroy()
 
